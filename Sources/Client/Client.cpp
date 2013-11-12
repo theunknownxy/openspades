@@ -189,6 +189,7 @@ namespace spades {
 			lastKills = 0;
 			
 			logStream = NULL;
+			statStream = NULL;
 			
 			localFireVibrationTime = -1.f;
 			
@@ -257,6 +258,7 @@ namespace spades {
 				
 				SPLog("World removed");
 				NetLog("------ World Unloaded ------");
+				StatLog("====================");
 			}
 			
 			limbo->SetSelectedTeam(2);
@@ -278,6 +280,10 @@ namespace spades {
 				delete logStream;
 			}
 			
+			if(statStream) {
+				SPLog("Closing statistic");
+				delete statStream;
+			}
 			if(net){
 				SPLog("Disconnecting");
 				net->Disconnect();
@@ -409,6 +415,13 @@ namespace spades {
 					fn2 += '_';
 				}
 			}
+			std::string statfile = "NetLogs/" + fn2 + ".stats";
+			try {
+				statStream = FileManager::OpenForWriting(statfile.c_str());
+			}catch(const std::exception& ex) {
+				SPLog("Failed to open statistic file '%s'", statfile.c_str());
+			}
+
 			fn2 = "NetLogs/" + fn2 + ".log";
 			
 			try{
@@ -1282,6 +1295,26 @@ namespace spades {
 			if(!p)
 				return 0.f;
 			return p->GetAimDownState();
+		}
+		
+		void Client::StatLog(const char *format, ...) {
+			char buf[4096];
+			va_list va;
+			va_start(va, format);
+			vsprintf(buf, format, va);
+			va_end(va);
+			std::string str = buf;
+			
+			time_t t;
+			struct tm tm;
+			::time(&t);
+			
+			sprintf(buf, "%ld %s\n", t, str.c_str());
+			
+			if(statStream) {
+			    statStream->Write(buf);
+			    statStream->Flush();
+			}
 		}
 		
 		void Client::SetSelectedTool(Player::ToolType type, bool quiet) {
@@ -3644,6 +3677,7 @@ namespace spades {
 			cause = " [";
 			Weapon* w = killer ? killer->GetWeapon() : NULL;	//only used in case of KillTypeWeapon
 			cause += ChatWindow::killImage( kt, w ? w->GetWeaponType() : RIFLE_WEAPON );
+					cause += killer->GetWeapon()->GetName();
 			cause += "] ";
 			
 			if(ff)
@@ -3672,6 +3706,34 @@ namespace spades {
 					   cause.c_str());
 			}
 			
+
+			int kx, ky, kz;
+			Vector3 kpos = killer->GetPosition();
+			kx = kpos.x;
+			ky = kpos.y;
+			kz = kpos.z;
+			int vx, vy, vz;
+			Vector3 vpos = victim->GetPosition();
+			vx = vpos.x;
+			vy = vpos.y;
+			vz = vpos.z;
+
+			if(killer != victim) {
+				StatLog("{{%d;%d;%d}}{{%d;%d;%d}}%s (%s)%s%s (%s)",
+					   kx,ky,kz,
+					   vx,vy,vz,
+					   killer->GetName().c_str(),
+					   world->GetTeam(killer->GetTeamId()).name.c_str(),
+					   cause.c_str(),
+					   victim->GetName().c_str(),
+					   world->GetTeam(victim->GetTeamId()).name.c_str());
+			}else{
+				StatLog("%s (%s)%s",
+					   killer->GetName().c_str(),
+					   world->GetTeam(killer->GetTeamId()).name.c_str(),
+					   cause.c_str());
+			}
+
 			// show big message if player is involved
 			if(victim != killer){
 				Player* local = world->GetLocalPlayer();

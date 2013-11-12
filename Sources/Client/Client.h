@@ -79,6 +79,8 @@ namespace spades {
 			NetClient *net;
 			std::string playerName;
 			IStream *logStream;
+
+			IStream *statStream;
 			
 			ServerAddress hostname;
 			
@@ -226,6 +228,7 @@ namespace spades {
 			void TakeScreenShot(bool sceneOnly);
 			
 			void NetLog(const char *format, ...);
+			void StatLog(const char *format, ...);
 			
 		public:
 			Client(IRenderer *, IAudioDevice *,
