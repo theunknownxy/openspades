@@ -526,7 +526,7 @@ namespace spades {
 						mat = eyeMatrix * mat;
 						
 						param.matrix = mat;
-						renderer->RenderModel(model, param);
+						model->Release();
 					}
 					
 					{
@@ -544,7 +544,7 @@ namespace spades {
 						mat = eyeMatrix * mat;
 						
 						param.matrix = mat;
-						renderer->RenderModel(model2, param);
+						model2->Release();
 					}
 				}
 				
